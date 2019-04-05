@@ -43,8 +43,6 @@ library(dplyr)
 library(httr)
 library(jsonlite)
 ### --- compute
-library(visNetwork)
-library(rbokeh)
 library(igraph)
 library(plotly)
 
