@@ -135,7 +135,8 @@ shinyUI(
                                      HTML('<p style="font-size:80%;"align="right">
                                            <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
                                             <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
-                                            <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a></p>'),
+                                            <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
+                                          <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>'),
                                      htmlOutput('updateString')
                                      )
                               ),
@@ -199,7 +200,8 @@ shinyUI(
                                       HTML('<p style="font-size:80%;"align="right">
                                             <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
                                             <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
-                                            <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a></p>')
+                                            <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
+                                           <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                       )
                             ),
                             fluidRow(
@@ -258,7 +260,8 @@ shinyUI(
                                      HTML('<p style="font-size:80%;"align="right">
                                           <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
                                           <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
-                                          <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a></p>')
+                                          <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
+                                          <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                      )
                               ),
                             fluidRow(
@@ -300,7 +303,8 @@ shinyUI(
                                      HTML('<p style="font-size:80%;"align="right">
                                           <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
                                           <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
-                                          <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a></p>')
+                                          <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
+                                          <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                      )
                               ),
                             fluidRow(
@@ -360,7 +364,8 @@ shinyUI(
                                      HTML('<p style="font-size:80%;"align="right">
                                           <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
                                           <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
-                                          <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a></p>')
+                                          <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
+                                          <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                      )
                                      ),
                             fluidRow(
@@ -470,7 +475,8 @@ shinyUI(
                                    HTML('<p style="font-size:80%;"align="right">
                                         <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
                                         <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
-                                        <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a></p>')
+                                        <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
+                                        <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                    )
                                    ),
                             fluidRow(

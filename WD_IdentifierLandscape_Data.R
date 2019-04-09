@@ -80,7 +80,6 @@ sparkExecutorCores <- params$spark$executor_cores
 # - endpoint for Blazegraph GAS program  
 endPointURL <- params$general$wdqs_endpoint
 
-
 ### --- Fetch all Wikidata external identifiers
 # - Set proxy
 Sys.setenv(
