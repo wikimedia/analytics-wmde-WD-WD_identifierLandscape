@@ -41,42 +41,60 @@
 
 ### --- Modules
 import pyspark
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import rank, col, explode, regexp_extract
 import numpy as np
 import pandas as pd
 import csv
-import xml.etree.ElementTree as ET
-from sys import stdin
-import sys
-import re
-
-# - where is the script being run from:
-parsFile = str(sys.path[0]) + "/WDIdentifiersLandscape_Config.xml"
-# - parse config XML file
-tree = ET.parse(parsFile)
-root = tree.getroot()
-k = [elem.tag for elem in root.iter()]
-v = [x.text for x in root.iter()]
-params = dict(zip(k, v))
-publicDir = params['dataDir']
 
 ### --- Init Spark
 
 # - Spark Session
 sc = SparkSession\
     .builder\
-    .appName("WD Identifiers Landscape")\
+    .appName("WD External Identifiers - Test")\
     .enableHiveSupport()\
     .getOrCreate()
+# - dump file: /user/joal/wmf/data/wmf/mediawiki/wikidata_parquet/20190204
 
 # - SQL Context
 sqlContext = pyspark.SQLContext(sc)
 
-### --- Access WD dump
-WD_dump = sqlContext.read.parquet(params['WD_dumpFile'])
+### ------------------------------------------------------------------------
+### --- Explode WD dump: mainSnak
+### ------------------------------------------------------------------------
 
-### --- Explode WD dump
+### --- Access WD dump
+WD_dump = sqlContext.read.parquet('/user/joal/wmf/data/wmf/mediawiki/wikidata_parquet/20190204')
+
+### --- Cache WD dump
+WD_dump.cache()
+
+WD_dump = WD_dump.select('id', 'claims.mainSnak')
+WD_dump = WD_dump.withColumn('mainSnak', explode('mainSnak'))
+WD_dump = WD_dump.select('id', col("mainSnak.property").alias("property"),\
+                         col("mainSnak.dataType").alias("dataType"))
+WD_dump = WD_dump.filter(WD_dump.dataType == 'external-id')
+WD_dump = WD_dump.select('id', 'property').orderBy(["id", "property"])
+# - repartition
+WD_dump = WD_dump.repartition(10)
+
+# - save to csv:
+WD_dump.write.format('csv').mode("overwrite").save('wd_extId_data_stat_.csv')
+
+# - clear
+sc.catalog.clearCache()
+
+### ------------------------------------------------------------------------
+### --- Explode WD dump: References
+### ------------------------------------------------------------------------
+
+### --- Access WD dump
+WD_dump = sqlContext.read.parquet('/user/joal/wmf/data/wmf/mediawiki/wikidata_parquet/20190204')
+
+### --- Cache WD dump
+WD_dump.cache()
+
 WD_dump = WD_dump.select('id', 'claims.references')
 WD_dump = WD_dump.withColumn('references', explode('references'))
 WD_dump = WD_dump.withColumn('references', explode('references'))
@@ -84,28 +102,38 @@ WD_dump = WD_dump.withColumn('references', explode('references.snaks'))
 WD_dump = WD_dump.select(col("id"), col("references.property").alias("property"),\
                          col("references.dataType").alias("dataType"))
 WD_dump = WD_dump.filter(WD_dump.dataType == 'external-id')
-WD_dump = WD_dump.select('id', 'property')
+WD_dump = WD_dump.select('id', 'property').orderBy(["id", "property"])
+# - repartition
+WD_dump = WD_dump.repartition(10)
+
+# - save to csv:
+WD_dump.write.format('csv').mode("overwrite").save('wd_extId_data_ref_.csv')
+
+# - clear
+sc.catalog.clearCache()
+
+### ------------------------------------------------------------------------
+### --- Explode WD dump: Qualifiers
+### ------------------------------------------------------------------------
+
+### --- Access WD dump
+WD_dump = sqlContext.read.parquet('/user/joal/wmf/data/wmf/mediawiki/wikidata_parquet/20190204')
 
 ### --- Cache WD dump
 WD_dump.cache()
 
-### --- clean up
-# - create View from WDCM_MainTableRaw
-WD_dump.createTempView("wddump")
-# - SQL for regex
-WD_dump = WD_dump.select(regexp_extract('id', r'Q(\d+)', 1).alias('id'), \
-                    regexp_extract('property', r'P(\d+)', 1).alias('property'))
+WD_dump = WD_dump.select('id', 'claims.qualifiers')
+WD_dump = WD_dump.withColumn('qualifiers', explode('qualifiers'))
+WD_dump = WD_dump.withColumn('qualifiers', explode('qualifiers'))
+WD_dump = WD_dump.select(col("id"), col("qualifiers.property").alias("property"),\
+                         col("qualifiers.dataType").alias("dataType"))
+WD_dump = WD_dump.filter(WD_dump.dataType == 'external-id')
+WD_dump = WD_dump.select('id', 'property').orderBy(["id", "property"])
+# - repartition
+WD_dump = WD_dump.repartition(1)
 
-### --- randomSplit; loop over batches, process and store:
-s = list(np.repeat(.01, 99))
-splits = WD_dump.randomSplit(s, 11)
-c = 0
-for sp in splits:
-    c = c + 1
-    df = pd.DataFrame(data={"col1": sp.collect()})
-    df.to_csv(publicDir + "split_" + str(c) + ".csv",\
-              sep=',', index=False)
+# - save to csv:
+WD_dump.write.format('csv').mode("overwrite").save('wd_extId_data_qual_.csv')
 
-
-
-
+# - clear
+sc.catalog.clearCache()

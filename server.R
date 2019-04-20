@@ -68,65 +68,69 @@ shinyServer(function(input, output, session) {
   
   withProgress(message = 'Downloading data', detail = "Please be patient.", value = 0, {
   
-    incProgress(1/8, detail = "WD_ExternalIdentifiers_DataFrame")
+    incProgress(1/10, detail = "WD_ExternalIdentifiers_DataFrame")
     ### --- fetch WD_ExternalIdentifiers_DataFrame.csv
     wd_IdentifiersFrame <- get_WDCM_table(params$publicDir, 
                                           'WD_ExternalIdentifiers_DataFrame.csv', 
                                           row_names = F)
     colnames(wd_IdentifiersFrame)[1] <- 'rn'
+    wd_IdentifiersFrame <- filter(wd_IdentifiersFrame, 
+                                  grepl("^Wikidata", wd_IdentifiersFrame$classLabel))
     
-    incProgress(2/8, detail = "WD_ExternalIdentifiers_tsneMap")
+    incProgress(2/10, detail = "WD_ExternalIdentifiers_SubClasses")
+    ### --- fetch WD_ExternalIdentifiers_tsneMap.csv
+    wd_SubClasses <- get_WDCM_table(params$publicDir,
+                             'WD_ExternalIdentifiers_SubClasses.csv',
+                             row_names = F)
+    colnames(wd_SubClasses)[1] <- 'rn'
+    
+    incProgress(3/10, detail = "WD_ExternalIdentifiers_tsneMap")
     ### --- fetch WD_ExternalIdentifiers_tsneMap.csv
     wd_Map <- get_WDCM_table(params$publicDir,
                              'WD_ExternalIdentifiers_tsneMap.csv',
                              row_names = F)
     
-    incProgress(3/8, detail = "WD_ExternalIdentifiers_Co-Occurence")
+    incProgress(4/10, detail = "WD_ExternalIdentifiers_Co-Occurence")
     ### --- fetch WD_ExternalIdentifiers_Co-Occurence.csv
     wd_CoOccurence <- get_WDCM_table(params$publicDir,
                                      'WD_ExternalIdentifiers_Co-Occurence.csv',
                                      row_names = F)
     colnames(wd_CoOccurence)[1] <- 'Identifier'
     
-    incProgress(4/8, detail = "WD_ExternalIdentifiers_JaccardDistance")
+    incProgress(5/10, detail = "WD_ExternalIdentifiers_JaccardDistance")
     ### --- fetch WD_ExternalIdentifiers_JaccardDistance.csv
     wd_Jaccard <- get_WDCM_table(params$publicDir,
                                      'WD_ExternalIdentifiers_JaccardDistance.csv',
                                      row_names = F)
     
-    incProgress(5/8, detail = "WD_ExternalIdentifiers_Stats")
+    incProgress(6/10, detail = "WD_ExternalIdentifiers_Stats")
     ### --- fetch WD_ExternalIdentifiers_Stats.csv
     wd_Stats <- get_WDCM_table(params$publicDir,
                                  'WD_ExternalIdentifiers_Stats.csv',
                                  row_names = F)
 
-    incProgress(6/8, detail = "WD_ExternalIdentifiers_Usage")
+    incProgress(7/10, detail = "WD_ExternalIdentifiers_Usage")
     ### --- fetch WD_ExternalIdentifiers_Usage.csv
     wd_Usage <- get_WDCM_table(params$publicDir,
                                'WD_ExternalIdentifiers_Usage.csv',
                                row_names = F)
+    # - add use column to wd_IndentifiersFrame
+    wd_IdentifiersFrame$used <- wd_IdentifiersFrame$property %in% wd_Usage$property
     
-    incProgress(7/8, detail = "WD_ExternalIdentifiers_Property_ItemsMarked")
-    ### --- fetch WD_ExternalIdentifiers_Property_ItemsMarked.csv
-    wd_ItemsMarked <- get_WDCM_table(params$publicDir,
-                                     'WD_ExternalIdentifiers_Property_ItemsMarked.csv',
-                                     row_names = F)
-    wd_ItemsMarked[, 1] <- NULL
-    # - remove: series ordinal (P1545)
-    wd_ItemsMarked <- filter(wd_ItemsMarked, property != 'P1545')
-    wd_ItemsMarked$label[is.na(wd_ItemsMarked$label)] <- 
-      wd_ItemsMarked$property[is.na(wd_ItemsMarked$label)]
-    # - fix wd_Map usage:
-    wd_Map[, 1] <- NULL
-    wd_Map$usage <- NULL
-    wd_Map <- left_join(wd_Map, select(wd_ItemsMarked, property, Count),
-                        by = "property")
-    colnames(wd_Map)[6] <- 'usage'
-    # - fix wd_IdentifiersFrame
-    wd_IdentifiersFrame$used <- sapply(wd_IdentifiersFrame$property, function(x) {
-      wd_ItemsMarked$Count[wd_ItemsMarked$property == x] > 0
-    })
-    incProgress(1/8, detail = "Update info.")
+    incProgress(8/10, detail = "WD_IdentifierConnected")
+    # ### --- fetch WD_identifierConnected.csv
+    identifierConnected <- get_WDCM_table(params$publicDir,
+                                          'WD_IdentifierConnected.csv',
+                                          row_names = F)
+    colnames(identifierConnected)[1] <- 'rn'
+  
+    incProgress(9/10, detail = "WD_identifierConnected10")
+    ### --- fetch WD_identifierConnected10.csv
+    identifierConnected10 <- get_WDCM_table(params$publicDir,
+                                            'WD_identifierConnected10.csv',
+                                            row_names = F)
+    colnames(identifierConnected10)[1] <- 'rn'
+    incProgress(10/10, detail = "Update Info.")
     ### --- Fetch update info
     updateInfo <- get_WDCM_table(params$publicDir,
                                  'WD_ExtIdentifiers_UpdateInfo.csv',
@@ -135,64 +139,11 @@ shinyServer(function(input, output, session) {
   })
   
   ### --- CONSTANTS
+  usedClassLabels <- unique(wd_Usage$classLabel)
   identifiers <- wd_IdentifiersFrame %>% 
     select(property, label, used)
   identifiers <- identifiers[!duplicated(identifiers), ]
   colnames(identifiers) <- c('identifier', 'identifierLabel', 'identifierUsed')
-  identifierClass <- wd_IdentifiersFrame %>% 
-    select(class, classLabel)
-  identifierClass <- identifierClass[!duplicated(identifierClass), ]
-  usedIdentifierLabels <- unique(wd_IdentifiersFrame$label[wd_IdentifiersFrame$used == T])
-  usedClassLabels <- unique(wd_IdentifiersFrame$classLabel[wd_IdentifiersFrame$used == T])
-  # - fix wd_CoOccurence
-  coOcCols <- data.frame(cols = colnames(wd_CoOccurence)[2:length(colnames(wd_CoOccurence))], 
-                         stringsAsFactors = F)
-  coOcCols <- left_join(coOcCols, identifiers, 
-                        by = c('cols' = 'identifier'))
-  coOcCols$identifierLabel[is.na(coOcCols$identifierLabel)] <- 
-    coOcCols$cols[is.na(coOcCols$identifierLabel)]
-  coOcCols$identifierLabel <- paste0(coOcCols$identifierLabel, " (", coOcCols$cols, ")")
-  colnames(wd_CoOccurence)[2:length(colnames(wd_CoOccurence))] <- 
-    coOcCols$identifierLabel
-  wd_CoOccurence$Identifier <- coOcCols$identifierLabel
-  # - identifierConnected for similarityGraph 
-  withProgress(message = 'Computing Similarity Graphs', detail = "Please be patient.", value = 0, {
-    incProgress(1/6, detail = "Examine Co-Occurence Data")
-    identifierConnected <- gather(wd_CoOccurence, 
-                                  key = Code, 
-                                  value = coOcur,
-                                  -Identifier) %>% 
-      arrange(Code, Identifier, desc(coOcur)) %>% 
-      filter(coOcur != 0)
-    incProgress(2/6, detail = "Re-structure")
-    iC <- lapply(unique(identifierConnected$Code), function(x){
-      d <- identifierConnected[identifierConnected$Code == x, ]
-      w <- which(d$coOcur == max(d$coOcur))
-      d$Identifier[w]
-    })
-    names(iC) <- unique(identifierConnected$Code)
-    identifierConnected <- stack(iC)
-    colnames(identifierConnected) <- c('Incoming', 'Outgoing')
-    incProgress(3/6, detail = "DONE")
-    incProgress(4/6, detail = "Examine Co-Occurence Data")
-    identifierConnected10 <- gather(wd_CoOccurence, 
-                                  key = Code, 
-                                  value = coOcur,
-                                  -Identifier) %>% 
-      arrange(Code, Identifier, desc(coOcur)) %>% 
-      filter(coOcur != 0)
-    incProgress(5/6, detail = "Re-structure")
-    iC <- lapply(unique(identifierConnected10$Code), function(x){
-      d <- identifierConnected10[identifierConnected10$Code == x, ]
-      w <- which(d$coOcur %in% sort(d$coOcur, decreasing = T)[1:10])
-      d$Identifier[w]
-    })
-    names(iC) <- unique(identifierConnected10$Code)
-    identifierConnected10 <- stack(iC)
-    colnames(identifierConnected10) <- c('Incoming', 'Outgoing')
-    incProgress(6/6, detail = "DONE")
-    
-})
   
   ### --- OUTPUTS
   
@@ -300,42 +251,40 @@ shinyServer(function(input, output, session) {
   
   output$similarityGraph <- renderPlotly({
     
-    # - Visualize w. {igraph}
     withProgress(message = 'Generating Network.', detail = "Please be patient.", value = 0, {
       
-      incProgress(1/3, detail = "Please be patient.")
-      
+      incProgress(1/6, detail = "Prepare data structures.")
+    
       idNet <- data.frame(from = identifierConnected$Outgoing,
                           to = identifierConnected$Incoming,
                           stringsAsFactors = F)
       idNet <- graph.data.frame(idNet,
                                 vertices = NULL,
                                 directed = T)
-    
-      # - network layout
-      L <- layout_with_fr(idNet)
+      
+      # - Layout
+      incProgress(2/6, detail = "Compute graph layout.")
+      L <- layout_nicely(idNet, dim = 2)
+      
       L <- as.data.frame(L)
-        
       vs <- V(idNet)
       L$name <- vs$name
       es <- as.data.frame(get.edgelist(idNet))
-      
       Nv <- length(vs)
       Ne <- dim(es)[1]
-      
       Xn <- L[,1]
       Yn <- L[,2]
-      
       a <- rowSums(select(wd_CoOccurence, -Identifier))
       f <- data.frame(summa = a, 
                       id = wd_CoOccurence$Identifier, 
                       stringsAsFactors = F) %>% 
         arrange(desc(summa))
       vsnames <- data.frame(id = vs$name, 
+                            prop = str_extract(vs$name, "P[[:digit:]]+"),
                             stringsAsFactors = F)
-      vsnames <- left_join(vsnames, f, by = "id")
-      
-      incProgress(2/3, detail = "Please be patient.")
+      vsnames <- left_join(vsnames, f, by = c("prop" = "id"))
+      vsnames$prop <- NULL
+      incProgress(3/6, detail = "Prepare plot object.")
       network <- plot_ly(x = ~Xn, 
                          y = ~Yn, 
                          mode = "markers", 
@@ -343,12 +292,11 @@ shinyServer(function(input, output, session) {
                          size = vsnames$summa,
                          sizes = c(10, 300),
                          hoverinfo = "text")
-    
       edge_shapes <- list()
+      incProgress(4/6, detail = "Prepare plot object.")
       for (i in 1:Ne) {
         v0 <- es[i, ]$V1
         v1 <- es[i, ]$V2
-      
         edge_shape = list(
           type = "line",
           line = list(color = "#030303", width = 0.3),
@@ -357,41 +305,34 @@ shinyServer(function(input, output, session) {
           x1 = Xn[which(L$name == v1)],
           y1 = Yn[which(L$name == v1)]
         )
-        
         edge_shapes[[i]] <- edge_shape
       }
-    
       axis <- list(title = "", 
                    showgrid = FALSE, 
                    showticklabels = FALSE, 
                    zeroline = FALSE)
-      
+      incProgress(5/6, detail = "Graph aesthetics.")
       p <- layout(
         network,
         shapes = edge_shapes,
         xaxis = axis,
         yaxis = axis
       )
-    
-      incProgress(2/3, detail = "Please be patient.")
-      ggplotly(p) %>% 
-        plotly::config(displayModeBar = TRUE, 
-                       displaylogo = FALSE, 
-                       collaborate = FALSE, 
+      incProgress(6/6, detail = "Render network.")
+      ggplotly(p) %>%
+        plotly::config(displayModeBar = TRUE,
+                       displaylogo = FALSE,
+                       collaborate = FALSE,
                        modeBarButtonsToRemove = list(
-                         'lasso2d', 
-                         'select2d', 
-                         'toggleSpikelines', 
-                         'hoverClosestCartesian', 
-                         'hoverCompareCartesian', 
+                         'lasso2d',
+                         'select2d',
+                         'toggleSpikelines',
+                         'hoverClosestCartesian',
+                         'hoverCompareCartesian',
                          'autoScale2d'
-                       ))
+                         ))
+      })
     })
-    
-    }) %>% withProgress(message = 'Generating plot',
-                                         min = 0,
-                                         max = 1,
-                                         value = 1, {incProgress(amount = 1)})
   
   
   ### ----------------------------------
@@ -401,7 +342,12 @@ shinyServer(function(input, output, session) {
   ### --- SELECT: update select 'selectId'
   updateSelectizeInput(session,
                        'selectId',
-                       choices = wd_CoOccurence$Identifier,
+                       choices = unique(
+                         paste0(wd_IdentifiersFrame$label, 
+                                " (", 
+                                wd_IdentifiersFrame$property,
+                                ")"
+                           )),
                        selected = 'GND ID (P227)',
                        server = TRUE)
   
@@ -409,13 +355,29 @@ shinyServer(function(input, output, session) {
   output$overlapDT <- DT::renderDataTable({
     # - dFrame_overviewDT reactive:
     dFrame_overviewDT <- reactive({
-      dFrame <- wd_CoOccurence[wd_CoOccurence$Identifier %in% input$selectId, ]
+      sel <- str_extract(input$selectId, "P[[:digit:]]+")
+      
+      dFrame <- wd_CoOccurence[wd_CoOccurence$Identifier %in% sel, ]
       dFrame <- stack(dFrame)
-      dFrame <- dFrame[, c('ind', 'values')]
-      colnames(dFrame) <- c('Identifier', dFrame[1, 2])
-      dFrame <- dFrame[-1, ]
-      dFrame <- dFrame[order(-as.numeric(dFrame[, 2])), ]
-      return(dFrame)
+      if (dim(dFrame)[1] == 0) {
+        dFrame <- data.frame(Identifier = input$selectId, 
+                             Comment = 'No overlap data for this identifier.')
+        return(dFrame)
+        } else {
+        dFrame <- dFrame[, c('ind', 'values')]
+        colnames(dFrame) <- c('Identifier', dFrame[1, 2])
+        dFrame <- dFrame[-1, ]
+        dFrame <- dFrame[order(-as.numeric(dFrame[, 2])), ]
+        labs <- select(wd_IdentifiersFrame, 
+                       property, label)
+        labs <- labs[!duplicated(labs), ]
+        labs$label <- paste0(labs$label, " (", labs$property, ")")
+        dFrame <- left_join(dFrame, labs, 
+                            by = c('Identifier' = 'property'))
+        dFrame$Identifier <- dFrame$label
+        dFrame$label <- NULL
+        return(dFrame)
+        }
     })
     # - DT:
     datatable(dFrame_overviewDT(), 
@@ -434,12 +396,13 @@ shinyServer(function(input, output, session) {
   
   ### --- output$usageDT
   output$usageDT <- DT::renderDataTable({
-    dFrame <- wd_ItemsMarked
-    dFrame$Identifier <- paste0(dFrame$label, " (", dFrame$property, ")")
-    dFrame$Usage <- dFrame$Count
-    dFrame <- select(dFrame, Identifier, Usage)
-    dFrame <- arrange(dFrame, desc(Usage))
-    colnames(dFrame) <- c('Identifier', 'Num. Items')
+    dFrame <- wd_Usage %>% 
+      select(label, property, usage) %>% 
+      arrange(desc(usage))
+    dFrame <- dFrame[!duplicated(dFrame), ]
+    dFrame$Property <- paste0(dFrame$label, " (", dFrame$property, ")")
+    dFrame <- select(dFrame, Property, usage)
+    colnames(dFrame) <- c('Property', 'Usage')
     # - DT:
     datatable(dFrame, 
               filter = 'top',
@@ -464,16 +427,21 @@ shinyServer(function(input, output, session) {
   updateSelectizeInput(session,
                        'selectClass',
                        choices = 
-                         unique(wd_IdentifiersFrame$classLabel[wd_IdentifiersFrame$used == T]),
-                       selected = 'Wikidata property for authority control',
+                         unique(wd_IdentifiersFrame$classLabel),
+                       selected = 'Wikidata property related to encyclopedias',
                        server = TRUE)
   
   ### --- output: localSimilarityGraph
   output$localSimilarityGraph <- renderPlotly({
     
     # - Visualize w. {igraph}
-    dSet <- wd_IdentifiersFrame[which(wd_IdentifiersFrame$classLabel %in% input$selectClass), ]
-    
+
+    selClass <- wd_IdentifiersFrame$class[which(wd_IdentifiersFrame$classLabel %in% input$selectClass)[1]]
+    selClass <- c(input$selectClass,
+                  wd_SubClasses$subClassLabel[wd_SubClasses$class %in% selClass])
+
+    dSet <- wd_IdentifiersFrame[which(wd_IdentifiersFrame$classLabel %in% selClass), ]
+
     if (!is.null(dSet)) {
     
       colnames(dSet)[1] <- 'rn'
@@ -511,8 +479,10 @@ shinyServer(function(input, output, session) {
                       stringsAsFactors = F) %>% 
         arrange(desc(summa))
       vsnames <- data.frame(id = vs$name, 
+                            prop = str_extract(vs$name, "P[[:digit:]]+"),
                             stringsAsFactors = F)
-      vsnames <- left_join(vsnames, f, by = "id")
+      vsnames <- left_join(vsnames, f, by = c("prop" = "id"))
+      vsnames$prop <- NULL
       
       graphColors <- rep('Other', 
                          times = length(vs$name))
@@ -590,9 +560,8 @@ shinyServer(function(input, output, session) {
                          '" target="_blank">')
     dFrame$Identifier <- paste0(dFrame$label, " (", dFrame$property, ")")
     dFrame$Identifier <- paste0(dFrame$url, dFrame$Identifier, '</a>')
-    dFrame <- select(dFrame, Identifier, used)
-    colnames(dFrame)[2] <- 'Used'
-   
+    dFrame <- select(dFrame, Identifier)
+    
     # - DT:
     datatable(dFrame, 
               escape = F,
@@ -626,10 +595,9 @@ shinyServer(function(input, output, session) {
     
     # - Visualize w. {igraph}
     dSet <- wd_IdentifiersFrame[which(wd_IdentifiersFrame$label %in% input$selectIdentifier), ]
-        
+    
     if (!is.null(dSet)) {
       
-      colnames(dSet)[1] <- 'rn'
       dSet <- dSet %>%
         filter(used == T) %>% 
         select(property, label)
@@ -668,9 +636,10 @@ shinyServer(function(input, output, session) {
                       stringsAsFactors = F) %>% 
         arrange(desc(summa))
       vsnames <- data.frame(id = vs$name, 
+                            prop = str_extract(vs$name, "P[[:digit:]]+"),
                             stringsAsFactors = F)
-      vsnames <- left_join(vsnames, f, by = "id")
-      
+      vsnames <- left_join(vsnames, f, by = c("prop" = "id"))
+      vsnames$prop <- NULL
       graphColors <- rep('Other', 
                          times = length(vs$name))
       wClass <- which(vs$name %in% dSet)
@@ -751,7 +720,6 @@ shinyServer(function(input, output, session) {
     
     # - number of statements
     
-    
     # - classes:
     idClasses <- unique(paste0(dSet$classLabel, " (", dSet$class, ")"))
     idC <- str_extract(idClasses, "Q[[:digit:]]+")
@@ -786,7 +754,7 @@ shinyServer(function(input, output, session) {
       statementsInfo <- "Wikidata has no statements on this identifier."
     }
     # - usageInfo
-    usageInfo <- wd_ItemsMarked$Count[wd_ItemsMarked$label %in% input$selectIdentifier]
+    usageInfo <- wd_Usage$usage[wd_Usage$label %in% input$selectIdentifier][1]
     usageInfo <- paste0('This identifier is used by <b>', usageInfo, '</b> WD items.')
     
     # - output string
@@ -873,7 +841,4 @@ shinyServer(function(input, output, session) {
   
   
   }) ### --- END shinyServer
-
-
-
 

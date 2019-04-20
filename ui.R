@@ -252,8 +252,8 @@ shinyUI(
                                           each identifier points a link towards its own nearest neighbour. The size of the bubble corresponds to the total number 
                                           of items across which the respective identifier overlaps with other identifiers. Hover over the bubble to obtain the 
                                           details (<i>identifier ID</i> and the measure of total overal) on the respective identifier and use the toolbox 
-                                          (in the top-right corner of the network) to zoom, pan, or download. The <i>Fruchterman-Reingold</i> algorithm  in 
-                                          <a href = "https://igraph.org/r/doc/layout_with_fr.html" target = "_blank">{igraph}</a> is used to visualize the identifier network.</p>'),
+                                          (in the top-right corner of the network) to zoom, pan, or download.<br>
+                                          <font color="blue"><b>Please be patient</b>: we are rendering a <b><i>huge</i></b> network of Wikidata identifieres.</font></p>'),
                                      hr()
                                      ), 
                               column(width = 6,
@@ -296,8 +296,12 @@ shinyUI(
                                           Neighbors are those identifiers that share a large number of items that they describe.
                                           Each bubble represents an identifier, and each identifier is connected to its nearest neighbors 
                                           (<i>note:</i> their neighbors do not necessarily belong to the same class). Hover over the bubbles to 
-                                          reveal the respective identifiers.
-                                          The table to the right lists all WD external identifiers that belong to the selected class.</p>')
+                                          reveal the respective identifiers. The <i>Fruchterman-Reingold</i> algorithm  in 
+                                          <a href = "https://igraph.org/r/doc/layout_with_fr.html" target = "_blank">{igraph}</a> is used 
+                                          to visualize the identifier network. For identifier classes that encompass a large number of identifiers 
+                                          you will most probably need to zoom into the dense region of the graph in order to discover its structure.
+                                          The table to the right lists all WD external identifiers that belong (in a sense of: <b>P31 Instance of</b>) 
+                                          to the selected class.</p>')
                                      ),
                               column(width = 4,
                                      HTML('<p style="font-size:80%;"align="right">
@@ -356,7 +360,9 @@ shinyUI(
                                           describes and an (approximate) set of  exemplar WD items or classes. If there is 
                                           enough overlap between the selected identifier and other WD identifiers, a 
                                           network of its neighbors (and their neighbors, to provide some context) will 
-                                          be generated. The table on the right lists several examples of WD items that 
+                                          be generated. The <i>Fruchterman-Reingold</i> algorithm  in 
+                                          <a href = "https://igraph.org/r/doc/layout_with_fr.html" target = "_blank">{igraph}</a> is 
+                                          used to visualize the identifier network. The table on the right lists several examples of WD items that 
                                           are described by the selected identifier, alongside the value assigned to them 
                                           and a list of classes (in a sense of <i>P31 Instance of </i>) they belong to.</p>')
                                      ),
@@ -399,8 +405,7 @@ shinyUI(
                                      ),
                               column(width = 6,
                                      h4('Typical usage of this identifier (Examples)'),
-                                     HTML('<p style="font-size:80%;"align="left">Note: this is not a random sample of 
-                                          items from this identifier. The result is based on the first 100 triplets fetched 
+                                     HTML('<p style="font-size:80%;"align="left">The result is based on the first 100 triplets fetched 
                                           from WDQS (i.e. LIMIT 100).</p>'),
                                      withSpinner(DT::dataTableOutput("examplesDT",
                                                               width = "100%")
