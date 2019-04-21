@@ -253,7 +253,9 @@ shinyUI(
                                           of items across which the respective identifier overlaps with other identifiers. Hover over the bubble to obtain the 
                                           details (<i>identifier ID</i> and the measure of total overal) on the respective identifier and use the toolbox 
                                           (in the top-right corner of the network) to zoom, pan, or download.<br>
-                                          <font color="blue"><b>Please be patient</b>: we are rendering a <b><i>huge</i></b> network of Wikidata identifieres.</font></p>'),
+                                          The <i>Fruchterman-Reingold</i> algorithm  in 
+                                          <a href = "https://igraph.org/r/doc/layout_with_fr.html" target = "_blank">{igraph}</a> is used 
+                                          to visualize the identifier network. <font color="blue"><b>Please be patient</b>: we are rendering a <b><i>huge</i></b> network of Wikidata identifieres.</font></p>'),
                                      hr()
                                      ), 
                               column(width = 6,
@@ -325,13 +327,13 @@ shinyUI(
                                      )
                               ),
                             fluidRow(
-                              column(width = 6,
+                              column(width = 8,
                                      withSpinner(plotlyOutput("localSimilarityGraph",
                                                               width = "100%",
                                                               height = "500px")
                                                  )
                               ),
-                              column(width = 6, 
+                              column(width = 4, 
                                      withSpinner(DT::dataTableOutput('identifierClassList', width = "100%")
                                                  )
                               )

@@ -264,7 +264,7 @@ shinyServer(function(input, output, session) {
       
       # - Layout
       incProgress(2/6, detail = "Compute graph layout.")
-      L <- layout_nicely(idNet, dim = 2)
+      L <- layout_with_fr(idNet, grid = "nogrid")
       
       L <- as.data.frame(L)
       vs <- V(idNet)
@@ -460,7 +460,7 @@ shinyServer(function(input, output, session) {
                                 directed = T)
       
       # - network layout
-      L <- layout.fruchterman.reingold(idNet)
+      L <- layout_with_fr(idNet, grid = "nogrid")
       L <- as.data.frame(L)
       
       vs <- V(idNet)
@@ -617,7 +617,7 @@ shinyServer(function(input, output, session) {
                                 directed = T)
       
       # - network layout
-      L <- layout.fruchterman.reingold(idNet)
+      L <- layout_with_fr(idNet, grid = "nogrid")
       L <- as.data.frame(L)
       
       vs <- V(idNet)
