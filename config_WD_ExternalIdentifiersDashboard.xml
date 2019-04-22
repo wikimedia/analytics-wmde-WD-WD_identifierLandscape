@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<parameters>
+    <publicDir>https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/</publicDir>
+    <wdqsEndpoint>https://query.wikidata.org/sparql?query=</wdqsEndpoint>
+    <dashboardDataDir>data/</dashboardDataDir>
+</parameters>
