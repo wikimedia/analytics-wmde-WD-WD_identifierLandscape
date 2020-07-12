@@ -1,6 +1,6 @@
 ### ---------------------------------------------------------------------------
-### --- WD External Identifiers Dashboard, v. 0.0.1
-### --- Script: ui.R, v. 0.0.1
+### --- WD External Identifiers Dashboard, v. 1.0.0
+### --- Script: ui.R
 ### ---------------------------------------------------------------------------
 
 ### ---------------------------------------------------------------------------
@@ -9,7 +9,7 @@
 ### --- Developed under the contract between Goran Milovanovic PR Data Kolektiv
 ### --- and WMDE.
 ### --- Contact: goran.milovanovic_ext@wikimedia.de
-### --- March 2019.
+### --- June 2020.
 ### ---------------------------------------------------------------------------
 ### ---------------------------------------------------------------------------
 ### --- LICENSE:
@@ -128,7 +128,8 @@ shinyUI(
                                           respective data can be found. The <b><i>Overlap Network</i></b> tab visualizes all Wikidata external identifiers in 
                                           a network of nearest neighbors. On the <b><i>Identifier Classes</i></b> tab we present insights into the relationships 
                                           between the WD external identifiers belonging to the same class of WD identifiers. The <b><i>Particular Identifier</i></b> 
-                                          tab provides insights into the data for any WD external identifier of choice.</i> tab. </p>'),
+                                          tab provides insights into the data for any WD external identifier of choice.</i> tab. 
+                                          <font color="blue"><b>Please be patient:</b> the dashboard needs to download the datasets and render the graphs upon initialiazitation.</font></p>'),
                                      htmlOutput('overview')
                                      ),
                               column(width = 4,
@@ -178,7 +179,7 @@ shinyUI(
                               ),
                               column(width = 11,
                                      hr(),
-                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2019.</b><br></p>'),
+                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2020.</b><br></p>'),
                                      HTML('<p style="font-size:80%;"><b>Contact:</b> Goran S. Milovanovic, Data Scientist, WMDE<br>
                                           <b>e-mail:</b> goran.milovanovic_ext@wikimedia.de<br><b>IRC:</b> goransm</p>'),
                                      br(), br()
@@ -237,7 +238,7 @@ shinyUI(
                               ),
                               column(width = 11,
                                      hr(),
-                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2019.</b><br></p>'),
+                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2020.</b><br></p>'),
                                      HTML('<p style="font-size:80%;"><b>Contact:</b> Goran S. Milovanovic, Data Scientist, WMDE<br>
                                           <b>e-mail:</b> goran.milovanovic_ext@wikimedia.de<br><b>IRC:</b> goransm</p>'),
                                      br(), br()
@@ -282,7 +283,7 @@ shinyUI(
                               ),
                               column(width = 11,
                                      hr(),
-                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2019.</b><br></p>'),
+                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2020.</b><br></p>'),
                                      HTML('<p style="font-size:80%;"><b>Contact:</b> Goran S. Milovanovic, Data Scientist, WMDE<br>
                                           <b>e-mail:</b> goran.milovanovic_ext@wikimedia.de<br><b>IRC:</b> goransm</p>'),
                                      br(), br()
@@ -346,7 +347,7 @@ shinyUI(
                               ),
                               column(width = 11,
                                      hr(),
-                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2019.</b><br></p>'),
+                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2020.</b><br></p>'),
                                      HTML('<p style="font-size:80%;"><b>Contact:</b> Goran S. Milovanovic, Data Scientist, WMDE<br>
                                           <b>e-mail:</b> goran.milovanovic_ext@wikimedia.de<br><b>IRC:</b> goransm</p>'),
                                      br(), br()
@@ -366,7 +367,9 @@ shinyUI(
                                           <a href = "https://igraph.org/r/doc/layout_with_fr.html" target = "_blank">{igraph}</a> is 
                                           used to visualize the identifier network. The table on the right lists several examples of WD items that 
                                           are described by the selected identifier, alongside the value assigned to them 
-                                          and a list of classes (in a sense of <i>P31 Instance of </i>) they belong to.</p>')
+                                          and a list of classes (in a sense of <i>P31 Instance of </i>) they belong to. <b>N.B.</b> 
+                                          It is possible that the current dashboard update does not have enough data to visualize 
+                                          the neighbourhood structure for particular identifiers - especially for the ones less frequently used.</p>')
                                      ),
                               column(width = 6,
                                      HTML('<p style="font-size:80%;"align="right">
@@ -407,7 +410,7 @@ shinyUI(
                                      ),
                               column(width = 6,
                                      h4('Typical usage of this identifier (Examples)'),
-                                     HTML('<p style="font-size:80%;"align="left">The result is based on the first 100 triplets fetched 
+                                     HTML('<p style="font-size:80%;"align="left">The result is based on the first 100 triples fetched 
                                           from WDQS (i.e. LIMIT 100).</p>'),
                                      withSpinner(DT::dataTableOutput("examplesDT",
                                                               width = "100%")
@@ -422,7 +425,7 @@ shinyUI(
                               ),
                               column(width = 11,
                                      hr(),
-                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2019.</b><br></p>'),
+                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2020.</b><br></p>'),
                                      HTML('<p style="font-size:80%;"><b>Contact:</b> Goran S. Milovanovic, Data Scientist, WMDE<br>
                                           <b>e-mail:</b> goran.milovanovic_ext@wikimedia.de<br><b>IRC:</b> goransm</p>'),
                                      br(), br()
@@ -495,7 +498,7 @@ shinyUI(
                               ),
                               column(width = 11,
                                      hr(),
-                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2019.</b><br></p>'),
+                                     HTML('<p style="font-size:80%;"><b>Wikidata Identifier Landscape :: WMDE 2020.</b><br></p>'),
                                      HTML('<p style="font-size:80%;"><b>Contact:</b> Goran S. Milovanovic, Data Scientist, WMDE<br>
                                           <b>e-mail:</b> goran.milovanovic_ext@wikimedia.de<br><b>IRC:</b> goransm</p>'),
                                      br(), br()

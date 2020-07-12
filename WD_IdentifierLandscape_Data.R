@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 
 ### ---------------------------------------------------------------------------
 ### --- WD_IdentifierLandscape_Data.R
@@ -5,7 +6,7 @@
 ### --- Developed under the contract between Goran Milovanovic PR Data Kolektiv
 ### --- and WMDE.
 ### --- Contact: goran.milovanovic_ext@wikimedia.de
-### --- March 2019.
+### --- June 2020.
 ### ---------------------------------------------------------------------------
 ### --- COMMENT:
 ### --- R data wrangling and statistical procedures forWD JSON dumps in hdfs
@@ -35,16 +36,14 @@
 ### --- Setup
 library(httr)
 library(jsonlite)
-library(data.table)
-library(dplyr)
-library(tidyr)
 library(XML)
+library(tidyverse)
+library(data.table)
 library(spam)
 library(spam64)
+# - note: GitHub repo dselivanov/text2vec@0.5.0
 library(text2vec)
 library(Rtsne)
-library(htmltab)
-library(stringr)
 library(igraph)
 library(plotly)
 
@@ -54,7 +53,14 @@ print(paste("--- WD_IndentifierLandscape.R RUN STARTED ON:",
 # - GENERAL TIMING:
 generalT1 <- Sys.time()
 
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: Init.", 
+            Sys.time(), sep = " "))
+
 ### --- Read WEIP paramereters
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: Read params.", 
+            Sys.time(), sep = " "))
 # - fPath: where the scripts is run from?
 fPath <- as.character(commandArgs(trailingOnly = FALSE)[4])
 fPath <- gsub("--file=", "", fPath, fixed = T)
@@ -63,14 +69,19 @@ fPath <- paste(
   paste(fPath[1:length(fPath) - 1], collapse = "/"),
   "/",
   sep = "")
-params <- xmlParse(paste0(fPath, "WDIdentifiersLandscape_Config.xml"))
+params <- xmlParse(paste0(fPath, 
+                          "WDIdentifiersLandscape_Config.xml"))
 params <- xmlToList(params)
 
 ### --- Directories
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: dirTree.", 
+            Sys.time(), sep = " "))
 # - form paths:
 dataDir <- params$general$dataDir
 logDir <- params$general$logDir
 analysisDir <- params$general$analysisDir
+etl_hdfsDir <- params$general$etl_hdfsDir
 # - production published-datasets:
 publicDir <- params$general$publicDir
 # - spark2-submit parameters:
@@ -84,6 +95,9 @@ sparkExecutorCores <- params$spark$executor_cores
 endPointURL <- params$general$wdqs_endpoint
 
 ### --- Fetch all Wikidata external identifiers
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: WDQS: fetch identifiers.", 
+            Sys.time(), sep = " "))
 # - Set proxy
 Sys.setenv(
   http_proxy = params$general$http_proxy,
@@ -103,6 +117,11 @@ if (res$status_code == 200) {
   identifiers <- fromJSON(rawToChar(res$content), simplifyDataFrame = T)
   # clear:
   rm(res); gc()
+} else {
+  # - to report:
+  print("Fetching identifiers from WDQS failed.")
+  print("Exiting.")
+  quit(save = "no")
 }
 identifiers <- data.frame(property = identifiers$results$bindings$item$value, 
                           label = identifiers$results$bindings$itemLabel$value,
@@ -113,15 +132,22 @@ identifiers <- data.frame(property = identifiers$results$bindings$item$value,
 identifiers$property <- gsub("http://www.wikidata.org/entity/", "", identifiers$property)
 identifiers$class <- gsub("http://www.wikidata.org/entity/", "", identifiers$class)
 # - store identifiers
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: Store identifiers (analysisDir).", 
+            Sys.time(), sep = " "))
 write.csv(identifiers, 
           paste0(analysisDir, "WD_ExternalIdentifiers_DataFrame.csv"))
 
 ### --- Fetch the sub-classes of all
 ### -- Wikidata external identifier classes
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: WDQS: Fetch the sub-classes of all external identifier classes.", 
+            Sys.time(), sep = " "))
 weiClasses <- unique(identifiers$class)
 weiClassesTable <- vector(mode = 'list', length = length(weiClasses))
 for (i in 1:length(weiClasses)) {
-  print(i)
+  # - to runtime Log:
+  print(paste0("Fetching sub-class: ", i, ". out of ", length(weiClasses), "."))
   query <- paste0('SELECT ?class ?classLabel { ?class wdt:P279/wdt:P279* wd:', 
                   weiClasses[i], 
                   ' . SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }}')
@@ -159,77 +185,108 @@ weiClassesTable <-
   filter(weiClassesTable, 
          subClass %in% weiClasses)
 # - store weiClassesTable
+# - to runtime Log:
+print(paste("--- WD_IndentifierLandscape.R: Store the sub-classes of all external identifier classes (analysisDir).", 
+            Sys.time(), sep = " "))
 write.csv(weiClassesTable, 
           paste0(analysisDir, "WD_ExternalIdentifiers_SubClasses.csv"))
-
 
 ### --- Run ETL Procedure from WD dump:
 ### --- WD_IdentifierLandscape_Data.py
 
 # - toRuntime Log:
-# - to runtime Log:
-print(paste("--- WD_IndentifierLandscape.py Pyspark ETL Procedures STARTED ON:", 
+print(paste("--- WD_IndentifierLandscape.R: prepare ETL phase, clean dataDir: ", 
+            Sys.time(), sep = " "))
+file.remove(list.files(dataDir))
+
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: prepare ETL phase, Kerberos init: ", 
+            Sys.time(), sep = " "))
+# - Kerberos init
+system(command = 'sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -ls', 
+       wait = T)
+
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: Pyspark ETL, WD_IdentifierLandscape_Data.py: starts: ", 
             Sys.time(), sep = " "))
 
-# - clean dataDir
-setwd(dataDir)
-file.remove(list.files())
-
-system(command = paste0('export USER=goransm && nice -10 spark2-submit ', 
+system(command = paste0('sudo -u analytics-privatedata spark2-submit ', 
                         sparkMaster, ' ',
                         sparkDeployMode, ' ', 
                         sparkNumExecutors, ' ',
                         sparkDriverMemory, ' ',
                         sparkExecutorMemory, ' ',
                         sparkExecutorCores, ' ',
+                        '--files WDIdentifiersLandscape_Config.xml', ' ',
                         paste0(fPath, 'WD_IdentifierLandscape_Data.py')),
        wait = T)
 
-### --- Compose final usage dataset
-# - to runtime Log:
-print(paste("--- Collect Final Data Set STARTED ON:", 
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: Pyspark ETL, WD_IdentifierLandscape_Data.py: ends: ", 
             Sys.time(), sep = " "))
+
+### --- Compose usage dataset
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: Compose final usage dataset, copy from hdfs: starts: ", 
+            Sys.time(), sep = " "))
+if (length(list.files(dataDir)) > 1) {
+  file.remove(paste0(dataDir, list.files(dataDir)))
+}
 # - copy splits from hdfs to local dataDir
 # - from statements:
-system(paste0('hdfs dfs -ls wd_extId_data_stat_.csv > ', dataDir, 'files.txt'), 
+system(paste0('sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -ls ',
+              etl_hdfsDir, 'wd_extId_data_stat_.csv > ', 
+              dataDir, 'files.txt'), 
        wait = T)
-files <- read.table('files.txt', skip = 1)
+files <- read.table(paste0(dataDir, 'files.txt'), skip = 1)
 files <- as.character(files$V8)[2:length(as.character(files$V8))]
-file.remove('files.txt')
+file.remove(paste0(dataDir, 'files.txt'))
 for (i in 1:length(files)) {
-  system(paste0('hdfs dfs -text ', files[i], ' > ',  
+  system(paste0('sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -text ', files[i], ' > ',  
                 paste0(dataDir, "wd_exts_data_stat_", i, ".csv")), wait = T)
 }
 # - from references:
-system(paste0('hdfs dfs -ls wd_extId_data_ref_.csv > ', dataDir, 'files.txt'), 
+system(paste0('sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -ls ',
+              etl_hdfsDir, 'wd_extId_data_ref_.csv > ', 
+              dataDir, 'files.txt'), 
        wait = T)
-files <- read.table('files.txt', skip = 1)
+files <- read.table(paste0(dataDir, 'files.txt'), skip = 1)
 files <- as.character(files$V8)[2:length(as.character(files$V8))]
-file.remove('files.txt')
+file.remove(paste0(dataDir, 'files.txt'))
 for (i in 1:length(files)) {
-  system(paste0('hdfs dfs -text ', files[i], ' > ',  
+  system(paste0('sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -text ', files[i], ' > ',  
                 paste0(dataDir, "wd_exts_data_ref_", i, ".csv")), wait = T)
 }
 # - from qualifiers:
-system(paste0('hdfs dfs -ls wd_extId_data_qual_.csv > ', dataDir, 'files.txt'), 
+system(paste0('sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -ls ',
+              etl_hdfsDir, 'wd_extId_data_qual_.csv > ', 
+              dataDir, 'files.txt'), 
        wait = T)
-files <- read.table('files.txt', skip = 1)
+files <- read.table(paste0(dataDir, 'files.txt'), skip = 1)
 files <- as.character(files$V8)[2:length(as.character(files$V8))]
-file.remove('files.txt')
+file.remove(paste0(dataDir, 'files.txt'))
 for (i in 1:length(files)) {
-  system(paste0('hdfs dfs -text ', files[i], ' > ',  
+  system(paste0('sudo -u analytics-privatedata kerberos-run-command analytics-privatedata hdfs dfs -text ', files[i], ' > ',  
                 paste0(dataDir, "wd_exts_data_qual_", i, ".csv")), wait = T)
 }
-# - read splits: dataSet
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: Compose final usage dataset, copy from hdfs: ends: ", 
+            Sys.time(), sep = " "))
+
+### --- read splits: dataSet
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: Load hdfs splits -> produce usage dataset, starts: ", 
+            Sys.time(), sep = " "))
 # - load
-lF <- list.files()
+lF <- list.files(dataDir)
 lF <- lF[grepl("data", lF)]
-dataSet <- lapply(lF, function(x) {fread(x, header = F)})
+dataSet <- lapply(paste0(dataDir, lF), function(x) {fread(x, header = F)})
 # - collect
 dataSet <- rbindlist(dataSet)
 colnames(dataSet) <- c('item', 'property')
-# - remove properties from the item column
-# dataSet <- filter(dataSet, grepl("^Q", dataSet$item))
+# - toRuntime Log:
+print(paste("--- WD_IndentifierLandscape.R: Load hdfs splits -> produce usage dataset, ends: ", 
+            Sys.time(), sep = " "))
 # - clean up item column
 # - how many missing data in the item column
 wMissItem <- which(is.na(dataSet$item))
@@ -240,16 +297,13 @@ print(paste0("Check, N missing items: ", nMissItem))
 wMissProperty <- which(is.na(dataSet$property))
 nMissProperty <- length(wMissProperty)
 print(paste0("Check, N missing properties: ", nMissProperty))
-# - clean up from NAs
+# - clean up dataSet from NAs
 rrow <- unique(c(wMissItem, wMissProperty))
 if (length(rrow) > 0) {
   dataSet <- dataSet[-rrow, ]
 }
-# - remove duplicated rows
+# - remove duplicated rows, if any
 dataSet <- dataSet[!duplicated(dataSet), ]
-# - store clean dataSet
-write.csv(dataSet, 
-          paste0(analysisDir, 'extIdentifiersData_Long.csv'))
 
 ### --- Enrich identifiers data from final usage dataset
 identifiers$used <- F
@@ -289,6 +343,8 @@ stats$N_total_identifier_classes_used <- length(classesUsed)
 identifierUsage <- dataSet %>% 
   group_by(property) %>% 
   summarise(usage = n())
+# - clean up: dataSet
+rm(dataSet); gc()
 # - joing identifier usage w. identifiers to obtain classes
 identifierUsage <- left_join(identifierUsage, identifiers, 
                              by = "property")
@@ -305,13 +361,16 @@ co_identifier <- rowSums(co_occur)
 # - store identifier co-occurences
 write.csv(co_occur, 
           paste0(analysisDir, "WD_ExternalIdentifiers_Co-Occurence.csv"))
+
 # - comput Jaccard Similarity Matrix
 t1 <- Sys.time()
-distMatrix <- sim2(x = dat, y = NULL, 
-                   method = "jaccard", 
-                   norm = "none")
+print(paste0("Jaccard distance matrix, start: ", Sys.time()))
+distMatrix <- text2vec::sim2(x = dat, y = NULL,
+                             method = "jaccard",
+                             norm = "none")
 print(paste0("Jaccard distance matrix in: ", Sys.time() - t1))
 rm(dat); gc()
+
 # - Jaccard similarity index to Jaccard distance
 distMatrix <- as.matrix(1 - distMatrix)
 diag(distMatrix) <- 0
@@ -334,16 +393,20 @@ write.csv(distMatrix,
 
 ### --- produce 2D tSNE identifier map
 # - to runtime Log:
-print(paste("--- tSNE on Jaccard Similarity Matrix STARTED ON:", 
+print(paste("--- tSNE on Jaccard Similarity Matrix starts:", 
             Sys.time(), sep = " "))
 # - matrix
 m <- dplyr::select(distMatrix, -label, -coOccur, -usage)
 # - tSNE dimensionality reduction
-tsneMap <- Rtsne(m,
+t1 <- Sys.time()
+tsneMap <- Rtsne(as.matrix(m),
                  theta = 0,
                  is_distance = T,
                  tsne_perplexity = 10, 
-                 max_iter = 10000)
+                 max_iter = 5000, 
+                 verbose = T)
+# - to runtime Log:
+print(paste0("tSNE done in: ", Sys.time() - t1))
 tsneMap <- tsneMap$Y
 colnames(tsneMap) <- c('D1', 'D2')
 tsneMap <- cbind(tsneMap, select(distMatrix, label, coOccur, usage))
@@ -354,8 +417,15 @@ write.csv(tsneMap,
           paste0(analysisDir, 
                  "WD_ExternalIdentifiers_tsneMap.csv")
 )
+# - to runtime Log:
+print(paste("--- tSNE on Jaccard Similarity Matrix ends:", 
+            Sys.time(), sep = " "))
+print(paste0("--- tSNE on Jaccard Similarity Matrix done in: ", Sys.time() - t1))
 
 ### --- Pre-process for the WD Identifier Landscape
+# - to runtime Log:
+print(paste("--- Pre-process for the WD Identifier Landscape now:", 
+            Sys.time(), sep = " "))
 ### --- Dashboard
 wd_IdentifiersFrame <- identifiers
 ids <- wd_IdentifiersFrame %>% 
@@ -368,6 +438,9 @@ identifierClass <- identifierClass[!duplicated(identifierClass), ]
 usedIdentifierLabels <- unique(wd_IdentifiersFrame$label[wd_IdentifiersFrame$used == T])
 usedClassLabels <- unique(wd_IdentifiersFrame$classLabel[wd_IdentifiersFrame$used == T])
 # - fix wd_CoOccurence
+# - to runtime Log:
+print(paste("--- fix wd_CoOccurence now:", 
+            Sys.time(), sep = " "))
 wd_CoOccurence <- co_occur
 coOcCols <- data.frame(cols = colnames(wd_CoOccurence), 
                        stringsAsFactors = F)
@@ -380,6 +453,9 @@ colnames(wd_CoOccurence) <- coOcCols$identifierLabel
 wd_CoOccurence <- as.data.frame(wd_CoOccurence)
 wd_CoOccurence$Identifier <- coOcCols$identifierLabel
 # - identifierConnected for similarityGraph 
+# - to runtime Log:
+print(paste("--- produce identifierConnected for similarityGraph now:", 
+            Sys.time(), sep = " "))
 identifierConnected <- gather(wd_CoOccurence,
                               key = Code,
                               value = coOcur,
@@ -401,63 +477,26 @@ idNet <- data.frame(from = identifierConnected$Outgoing,
 idNet <- graph.data.frame(idNet,
                           vertices = NULL,
                           directed = T)
-L <- layout_with_mds(idNet)
-L <- as.data.frame(L)
-vs <- V(idNet)
-L$name <- vs$name
-es <- as.data.frame(get.edgelist(idNet))
-Nv <- length(vs)
-Ne <- dim(es)[1]
-Xn <- L[,1]
-Yn <- L[,2]
-a <- rowSums(select(wd_CoOccurence, -Identifier))
-f <- data.frame(summa = a, 
-                id = wd_CoOccurence$Identifier, 
-                stringsAsFactors = F) %>% 
-  arrange(desc(summa))
-vsnames <- data.frame(id = vs$name, 
-                      stringsAsFactors = F)
-vsnames <- left_join(vsnames, f, by = "id")
-network <- plot_ly(x = ~Xn, 
-                   y = ~Yn, 
-                   mode = "markers", 
-                   text = paste0(vs$name, " (", vsnames$summa, ")"), 
-                   size = vsnames$summa,
-                   sizes = c(10, 300),
-                   hoverinfo = "text")
-edge_shapes <- list()
-for (i in 1:Ne) {
-  v0 <- es[i, ]$V1
-  v1 <- es[i, ]$V2
-  edge_shape = list(
-    type = "line",
-    line = list(color = "#030303", width = 0.3),
-    x0 = Xn[which(L$name == v0)],
-    y0 = Yn[which(L$name == v0)],
-    x1 = Xn[which(L$name == v1)],
-    y1 = Yn[which(L$name == v1)]
-  )
-  edge_shapes[[i]] <- edge_shape
-}
-axis <- list(title = "", 
-             showgrid = FALSE, 
-             showticklabels = FALSE, 
-             zeroline = FALSE)
-p <- layout(
-  network,
-  shapes = edge_shapes,
-  xaxis = axis,
-  yaxis = axis
-)
+# - to runtime Log:
+print(paste("--- Fruchterman and Reingold from idNet now:", 
+            Sys.time(), sep = " "))
+L <- layout_with_fr(idNet, grid = "nogrid")
 # - store Identifier Landscape Graph
-saveRDS(p, paste0(analysisDir, 
-                 "WD_ExternalIdentifiers_Graph.Rds"))
+saveRDS(L, paste0(analysisDir,
+                  "WD_ExternalIdentifiers_Graph.Rds"))
+# - store Identifier Landscape Graph as.data.frame
+L <- as.data.frame(L)
+write.csv(L, paste0(analysisDir, 
+                 "WD_ExternalIdentifiers_Graph.csv"))
 # - store identifierConnected
 write.csv(identifierConnected, 
           paste0(analysisDir, 
                  "WD_IdentifierConnected.csv"))
 
 ### --- Structure for identifier neighbourhood graphs
+# - to runtime Log:
+print(paste("--- Structure for identifier neighbourhood graphs now:", 
+            Sys.time(), sep = " "))
 identifierConnected10 <- gather(wd_CoOccurence,
                                 key = Code,
                                 value = coOcur,
@@ -477,13 +516,9 @@ write.csv(identifierConnected10,
           paste0(analysisDir, 
                   "WD_identifierConnected10.csv"))
 
-### --- Final operations
-# - to runtime Log:
-print(paste("--- WD_IndentifierLandscape.R RUN COMPLETED ON: ", 
+### --- Final operations: copy to public dir
+print(paste("--- Final operations: copy to public dir now:", 
             Sys.time(), sep = " "))
-# - GENERAL TIMING:
-print(paste("--- WD_IndentifierLandscape.R TOTAL RUNTIME: ", 
-            Sys.time() - generalT1, sep = " "))
 
 # - UPDATE INFO:
 updateInfo <- data.frame(Time = Sys.time())
@@ -502,10 +537,12 @@ write.csv(stats,
 system(command = 
          paste0('cp ', analysisDir, '* ' , publicDir),
        wait = T)
+
 # - to runtime Log:
-print(paste("--- DONE: ", 
+print(paste("--- WD_IndentifierLandscape.R RUN COMPLETED ON: ", 
             Sys.time(), sep = " "))
 
-
-
+# - GENERAL TIMING:
+print(paste("--- WD_IndentifierLandscape.R TOTAL RUNTIME: ", 
+            Sys.time() - generalT1, sep = " "))
 

@@ -1,6 +1,6 @@
 ### ---------------------------------------------------------------------------
-### --- WD External Identifiers Dashboard, v. 0.0.1
-### --- Script: server.R, v. 0.0.1
+### --- WD External Identifiers Dashboard, v. 1.0.0
+### --- Script: server.R
 ### ---------------------------------------------------------------------------
 
 ### ---------------------------------------------------------------------------
@@ -9,7 +9,7 @@
 ### --- Developed under the contract between Goran Milovanovic PR Data Kolektiv
 ### --- and WMDE.
 ### --- Contact: goran.milovanovic_ext@wikimedia.de
-### --- March 2019.
+### --- June 2020.
 ### ---------------------------------------------------------------------------
 ### ---------------------------------------------------------------------------
 ### --- LICENSE:
@@ -32,7 +32,6 @@
 ### ---------------------------------------------------------------------------
 
 ### --- Setup
-### --- general
 library(shiny)
 library(XML)
 library(data.table)
@@ -42,9 +41,16 @@ library(tidyr)
 library(dplyr)
 library(httr)
 library(jsonlite)
-### --- compute
 library(igraph)
 library(plotly)
+
+### --- functions
+get_WDCM_table <- function(url_dir, filename, row_names) {
+  read.csv(paste0(url_dir, filename), 
+           header = T, 
+           stringsAsFactors = F,
+           check.names = F)
+}
 
 ### --- Server (Session) Scope
 ### --------------------------------
@@ -52,81 +58,86 @@ library(plotly)
 ### --- Config File
 params <- xmlParse('config_WD_ExternalIdentifiersDashboard.xml')
 params <- xmlToList(params)
+apiPrefix <- params$apiPrefix
+apiParams <- params$apiParams
+endPointURL <- params$wdqsEndpoint
 
 ### --- shinyServer
 shinyServer(function(input, output, session) {
   
   ### --- DATA
   
-  withProgress(message = 'Load datasets.', detail = "Please be patient.", value = 0, {
+  withProgress(message = 'Downloading datasets.', detail = "Please be patient.", value = 0, {
   
-    incProgress(1/10, detail = "WD_ExternalIdentifiers_DataFrame")
     ### --- fetch WD_ExternalIdentifiers_DataFrame.csv
-    wd_IdentifiersFrame <- fread(paste0(params$dashboardDataDir,
-                                           'WD_ExternalIdentifiers_DataFrame.csv'))
-    wd_IdentifiersFrame$V1 <- NULL
+    incProgress(1/10, detail = "WD_ExternalIdentifiers_DataFrame")
+    wd_IdentifiersFrame <- get_WDCM_table(params$publicDir, 
+                                          'WD_ExternalIdentifiers_DataFrame.csv', 
+                                          row_names = F)
+    colnames(wd_IdentifiersFrame)[1] <- 'rn'
+    wd_IdentifiersFrame <- dplyr::filter(wd_IdentifiersFrame, 
+                                         grepl("^Wikidata", wd_IdentifiersFrame$classLabel))
     
-    
-    incProgress(1/10, detail = "WD_ExternalIdentifiers_Graph")
     ### --- fetch WD_ExternalIdentifiers_Graph.csv
-    wd_Graph <- readRDS(paste0(params$dashboardDataDir,
-                               'WD_ExternalIdentifiers_Graph.Rds'))
+    incProgress(2/10, detail = "WD_ExternalIdentifiers_Graph")
+    wd_Graph <- readRDS(gzcon(url(paste0(params$publicDir, 
+                                         "WD_ExternalIdentifiers_Graph.Rds"))))
     
-    incProgress(2/10, detail = "WD_ExternalIdentifiers_SubClasses")
+    ### --- fetch WD_ExternalIdentifiers_SubClasses.csv
+    incProgress(3/10, detail = "WD_ExternalIdentifiers_SubClasses")
+    wd_SubClasses <- get_WDCM_table(params$publicDir,
+                                    'WD_ExternalIdentifiers_SubClasses.csv',
+                                    row_names = F)
+    colnames(wd_SubClasses)[1] <- 'rn'
+
     ### --- fetch WD_ExternalIdentifiers_tsneMap.csv
-    wd_SubClasses <- fread(paste0(params$dashboardDataDir,
-                                        'WD_ExternalIdentifiers_SubClasses.csv'))
-    wd_SubClasses$V1 <- NULL
+    incProgress(4/10, detail = "WD_ExternalIdentifiers_tsneMap")
+    wd_Map <- get_WDCM_table(params$publicDir,
+                             'WD_ExternalIdentifiers_tsneMap.csv',
+                             row_names = F)
+    colnames(wd_Map)[1] <- 'prop'
     
-    incProgress(3/10, detail = "WD_ExternalIdentifiers_tsneMap")
-    ### --- fetch WD_ExternalIdentifiers_tsneMap.csv
-    wd_Map <- fread(paste0(params$dashboardDataDir,
-                           'WD_ExternalIdentifiers_tsneMap.csv'))
-    wd_Map$V1 <- NULL
-    
-    incProgress(4/10, detail = "WD_ExternalIdentifiers_Co-Occurence")
+      
     ### --- fetch WD_ExternalIdentifiers_Co-Occurence.csv
-    wd_CoOccurence <- fread(paste0(params$dashboardDataDir,
-                           'WD_ExternalIdentifiers_Co-Occurence.csv'))
-    wd_CoOccurence$V1 <- NULL
-    
-    incProgress(5/10, detail = "WD_ExternalIdentifiers_JaccardDistance")
-    ### --- fetch WD_ExternalIdentifiers_JaccardDistance.csv
-    wd_Jaccard <- fread(paste0(params$dashboardDataDir,
-                                   'WD_ExternalIdentifiers_JaccardDistance.csv'))
-    wd_Jaccard$V1 <- NULL
-    
-    incProgress(6/10, detail = "WD_ExternalIdentifiers_Stats")
+    incProgress(5/10, detail = "WD_ExternalIdentifiers_Co-Occurence")
+    wd_CoOccurence <- get_WDCM_table(params$publicDir,
+                                     'WD_ExternalIdentifiers_Co-Occurence.csv',
+                                     row_names = F)
+    colnames(wd_CoOccurence)[1] <- 'Identifier'
+
     ### --- fetch WD_ExternalIdentifiers_Stats.csv
-    wd_Stats <- fread(paste0(params$dashboardDataDir,
-                             'WD_ExternalIdentifiers_Stats.csv'))
-    wd_Stats$V1 <- NULL
-    
-    incProgress(7/10, detail = "WD_ExternalIdentifiers_Usage")
+    incProgress(6/10, detail = "WD_ExternalIdentifiers_Stats")
+    wd_Stats <- get_WDCM_table(params$publicDir,
+                               'WD_ExternalIdentifiers_Stats.csv',
+                               row_names = F)
+
     ### --- fetch WD_ExternalIdentifiers_Usage.csv
-    wd_Usage <- fread(paste0(params$dashboardDataDir,
-                             'WD_ExternalIdentifiers_Usage.csv'))
-    wd_Usage$V1 <- NULL
-    
-    
+    incProgress(7/10, detail = "WD_ExternalIdentifiers_Usage")
+    wd_Usage <- get_WDCM_table(params$publicDir,
+                               'WD_ExternalIdentifiers_Usage.csv',
+                               row_names = F)
+    # - add use column to wd_IndentifiersFrame
+    wd_IdentifiersFrame$used <- wd_IdentifiersFrame$property %in% wd_Usage$property
+
+    ### --- fetch WD_identifierConnected.csv
     incProgress(8/10, detail = "WD_IdentifierConnected")
-    # ### --- fetch WD_identifierConnected.csv
-    identifierConnected <- fread(paste0(params$dashboardDataDir,
-                                        'WD_IdentifierConnected.csv'))
-    identifierConnected$V1 <- NULL
-    
-    incProgress(9/10, detail = "WD_identifierConnected10")
+    identifierConnected <- get_WDCM_table(params$publicDir,
+                                          'WD_IdentifierConnected.csv',
+                                          row_names = F)
+    colnames(identifierConnected)[1] <- 'rn'
+
     ### --- fetch WD_identifierConnected10.csv
-    identifierConnected10 <- fread(paste0(params$dashboardDataDir,
-                                          'WD_identifierConnected10.csv'))
-    identifierConnected10$V1 <- NULL
-    
-    
-    incProgress(10/10, detail = "Update Info.")
+    incProgress(9/10, detail = "WD_identifierConnected10")
+    identifierConnected10 <- get_WDCM_table(params$publicDir,
+                                            'WD_identifierConnected10.csv',
+                                            row_names = F)
+    colnames(identifierConnected10)[1] <- 'rn'
+
     ### --- Fetch update info
-    updateInfo <- fread(paste0(params$dashboardDataDir,
-                               'WD_ExtIdentifiers_UpdateInfo.csv'))
-    updateInfo$V1 <- NULL
+    incProgress(10/10, detail = "Update Info.")
+    updateInfo <- get_WDCM_table(params$publicDir,
+                                 'WD_ExtIdentifiers_UpdateInfo.csv',
+                                 row_names = F) 
     
   })
   
@@ -162,10 +173,6 @@ shinyServer(function(input, output, session) {
              )
       )
   })
-  
-  ### ----------------------------------
-  ### --- TAB: Overview
-  ### ----------------------------------
   
   ### ----------------------------------
   ### --- TAB: Similarity Map
@@ -256,8 +263,7 @@ shinyServer(function(input, output, session) {
       
       # - Layout
       incProgress(2/7, detail = "Rendering graph. Please be patient.")
-      L <- wd_Graph
-      L <- as.data.frame(L)
+      L <- as.data.frame(wd_Graph)
       
       # - Attributes
       vs <- V(idNet)
@@ -270,11 +276,13 @@ shinyServer(function(input, output, session) {
       a <- rowSums(select(wd_CoOccurence, -Identifier))
       f <- data.frame(summa = a, 
                       id = wd_CoOccurence$Identifier, 
-                      stringsAsFactors = F) %>% 
+                      stringsAsFactors = F) %>%
         arrange(desc(summa))
       vsnames <- data.frame(id = vs$name, 
                             prop = str_extract(vs$name, "P[[:digit:]]+"),
                             stringsAsFactors = F)
+      f$id <- as.character(f$id)
+      vsnames$prop <- as.character(vsnames$prop)
       vsnames <- left_join(vsnames, f, by = c("prop" = "id"))
       vsnames$prop <- NULL
       # - {plotly}
@@ -285,6 +293,7 @@ shinyServer(function(input, output, session) {
                          text = paste0(vs$name, " (", vsnames$summa, ")"), 
                          size = vsnames$summa,
                          sizes = c(10, 300),
+                         spans = c(5, 20),
                          hoverinfo = "text")
       edge_shapes <- list()
       incProgress(4/7, detail = "Rendering graph. Please be patient.")
@@ -342,26 +351,33 @@ shinyServer(function(input, output, session) {
                                 wd_IdentifiersFrame$property,
                                 ")"
                            )),
-                       selected = 'GND ID (P227)',
+                       selected = unique(
+                         paste0(wd_IdentifiersFrame$label, 
+                                " (", 
+                                wd_IdentifiersFrame$property,
+                                ")"
+                         ))[1],
                        server = TRUE)
   
-  ### --- output$overviewDT
+  ### --- output$overlapDT
   output$overlapDT <- DT::renderDataTable({
     # - dFrame_overviewDT reactive:
     dFrame_overviewDT <- reactive({
       sel <- str_extract(input$selectId, "P[[:digit:]]+")
+      dFrame <- t(wd_CoOccurence[wd_CoOccurence$Identifier %in% sel, ])
+      dFrame <- data.frame(values = rownames(dFrame), 
+                           ind = dFrame, 
+                           stringsAsFactors = F)
+      colnames(dFrame) <- c('Identifier', dFrame[1, 2])
+      dFrame <- dFrame[-1, ]
+      dFrame[, 2] <- as.numeric(dFrame[, 2])
       
-      dFrame <- wd_CoOccurence[wd_CoOccurence$Identifier %in% sel, ]
-      dFrame <- stack(dFrame)
       if (dim(dFrame)[1] == 0) {
         dFrame <- data.frame(Identifier = input$selectId, 
                              Comment = 'No overlap data for this identifier.')
         return(dFrame)
         } else {
-        dFrame <- dFrame[, c('ind', 'values')]
-        colnames(dFrame) <- c('Identifier', dFrame[1, 2])
-        dFrame <- dFrame[-1, ]
-        dFrame <- dFrame[order(-as.numeric(dFrame[, 2])), ]
+        dFrame <- arrange(dFrame, desc(dFrame[, 2]))
         labs <- select(wd_IdentifiersFrame, 
                        property, label)
         labs <- labs[!duplicated(labs), ]
@@ -473,6 +489,8 @@ shinyServer(function(input, output, session) {
       vsnames <- data.frame(id = vs$name, 
                             prop = str_extract(vs$name, "P[[:digit:]]+"),
                             stringsAsFactors = F)
+      f$id <- as.character(f$id)
+      vsnames$prop <- as.character(vsnames$prop)
       vsnames <- left_join(vsnames, f, by = c("prop" = "id"))
       vsnames$prop <- NULL
       
@@ -543,8 +561,7 @@ shinyServer(function(input, output, session) {
   output$identifierClassList <- DT::renderDataTable({
     dFrame <- wd_IdentifiersFrame %>% 
       filter(classLabel %in% input$selectClass)
-    
-    colnames(dFrame)[1] <- 'rn'
+
     dFrame <- dFrame %>% 
       select(property, label, used)
     dFrame$url <- paste0('<a href = "https://www.wikidata.org/wiki/Property:', 
@@ -579,7 +596,7 @@ shinyServer(function(input, output, session) {
                        'selectIdentifier',
                        choices = 
                          unique(wd_IdentifiersFrame$label),
-                       selected = 'GND ID',
+                       selected = 'Glottolog code',
                        server = TRUE)
   
   ### --- output:identifierSimilarityGraph
@@ -629,6 +646,8 @@ shinyServer(function(input, output, session) {
       vsnames <- data.frame(id = vs$name, 
                             prop = str_extract(vs$name, "P[[:digit:]]+"),
                             stringsAsFactors = F)
+      f$id <- as.character(f$id)
+      vsnames$prop <- as.character(vsnames$prop)
       vsnames <- left_join(vsnames, f, by = c("prop" = "id"))
       vsnames$prop <- NULL
       graphColors <- rep('Other', 
@@ -703,9 +722,7 @@ shinyServer(function(input, output, session) {
     dSet <- wd_IdentifiersFrame[which(wd_IdentifiersFrame$label %in% 'National Heritage List for England number'), ]
     
     prop <- dSet$property[1]
-    APIquery <- paste0('https://www.wikidata.org/w/api.php?action=wbgetentities&ids=', 
-                       prop, 
-                       '&props=labels%7Cdescriptions%7Cclaims%7Csitelinks/urls&languages=az&languagefallback=&sitefilter=azwiki&formatversion=2&format=json')
+    APIquery <- paste0(apiPrefix, prop, apiParams)
     res <- GET(url = URLencode(APIquery))
     # - External Identifers to a data.frame
     if (res$status_code == 200) {
@@ -771,8 +788,6 @@ shinyServer(function(input, output, session) {
     withProgress(message = 'Contacting WDQS.', detail = "Please be patient.", value = 0, {
       
       incProgress(1/3, detail = "Please be patient.")
-      # - WDQS endpoint
-      endPointURL <- params$wdqsEndpoint
       # - Which identifier are we looking for?
       prop <- wd_IdentifiersFrame[which(wd_IdentifiersFrame$label %in% input$selectIdentifier), ]
       prop <- prop$property[1]

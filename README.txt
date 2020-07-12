@@ -16,3 +16,4 @@ They are hosted in: https://analytics.wikimedia.org/datasets/wmde-analytics-engi
 (1) Feedback should be sent to: goran.milovanovic_ext@wikimedia.de
 (2) Wikidata Identifier Landscape is produced by Goran S. Milovanovic working as a contractor for WMDE, via a contract established between Data Kolektiv, Belgrade and WMDE, Berlin.
 
+
