@@ -65,17 +65,25 @@ sc = SparkSession\
 sqlContext = pyspark.SQLContext(sc)
 
 ### --- parse WEIP parameters
-# - where is the script being run from:
-# parsFile = str(sys.path[0]) + "/WDIdentifiersLandscape_Config.xml"
-parsFile = "WDIdentifiersLandscape_Config.xml"
+parsFile = "/home/goransm/Analytics/Wikidata/WD_IdentifierLandscape/WDIdentifiersLandscape_Config.xml"
 # - parse wdcmConfig.xml
 tree = ET.parse(parsFile)
 root = tree.getroot()
 k = [elem.tag for elem in root.iter()]
 v = [x.text for x in root.iter()]
 params = dict(zip(k, v))
-wikidataEntitySnapshot = params['wikidataEntitySnapshot']
 etl_hdfsDir = params['etl_hdfsDir']
+
+### --- get wmf.wikidata_entity snapshot
+snaps = sqlContext.sql('SHOW PARTITIONS wmf.wikidata_entity')
+snaps = snaps.toPandas()
+wikidataEntitySnapshot = snaps.tail(1)['partition'].to_string()
+wikidataEntitySnapshot = wikidataEntitySnapshot[-10:]
+### --- get wmf.mediawiki_history snapshot
+snaps = sqlContext.sql('SHOW PARTITIONS wmf.mediawiki_history')
+snaps = snaps.toPandas()
+mwwikiSnapshot = snaps.tail(1)['partition'].to_string()
+mwwikiSnapshot = mwwikiSnapshot[-7:]
 
 ### ------------------------------------------------------------------------
 ### --- Explode WD dump: mainSnak

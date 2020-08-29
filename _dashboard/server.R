@@ -52,9 +52,6 @@ get_WDCM_table <- function(url_dir, filename, row_names) {
            check.names = F)
 }
 
-### --- Server (Session) Scope
-### --------------------------------
-
 ### --- Config File
 params <- xmlParse('config_WD_ExternalIdentifiersDashboard.xml')
 params <- xmlToList(params)
