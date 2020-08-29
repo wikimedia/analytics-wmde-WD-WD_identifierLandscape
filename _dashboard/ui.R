@@ -135,7 +135,7 @@ shinyUI(
                               column(width = 4,
                                      HTML('<p style="font-size:80%;"align="right">
                                            <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
-                                            <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
+                                            <a href = "https://analytics.wikimedia.org/published/datasets/wmde-analytics-engineering/Wikidata/WD_ExternalIdentifiers/" target = "_blank">Public datasets</a><br>
                                             <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
                                           <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>'),
                                      htmlOutput('updateString')
@@ -200,7 +200,7 @@ shinyUI(
                                column(width = 6,
                                       HTML('<p style="font-size:80%;"align="right">
                                             <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
-                                            <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
+                                            <a href = "https://analytics.wikimedia.org/published/datasets/wmde-analytics-engineering/Wikidata/WD_ExternalIdentifiers/" target = "_blank">Public datasets</a><br>
                                             <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
                                            <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                       )
@@ -262,7 +262,7 @@ shinyUI(
                               column(width = 6,
                                      HTML('<p style="font-size:80%;"align="right">
                                           <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
-                                          <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
+                                          <a href = "https://analytics.wikimedia.org/published/datasets/wmde-analytics-engineering/Wikidata/WD_ExternalIdentifiers/" target = "_blank">Public datasets</a><br>
                                           <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
                                           <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                      )
@@ -309,7 +309,7 @@ shinyUI(
                               column(width = 4,
                                      HTML('<p style="font-size:80%;"align="right">
                                           <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
-                                          <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
+                                          <a href = "https://analytics.wikimedia.org/published/datasets/wmde-analytics-engineering/Wikidata/WD_ExternalIdentifiers/" target = "_blank">Public datasets</a><br>
                                           <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
                                           <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                      )
@@ -374,7 +374,7 @@ shinyUI(
                               column(width = 6,
                                      HTML('<p style="font-size:80%;"align="right">
                                           <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
-                                          <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
+                                          <a href = "https://analytics.wikimedia.org/published/datasets/wmde-analytics-engineering/Wikidata/WD_ExternalIdentifiers/" target = "_blank">Public datasets</a><br>
                                           <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
                                           <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                      )
@@ -484,7 +484,7 @@ shinyUI(
                             column(width = 3,
                                    HTML('<p style="font-size:80%;"align="right">
                                         <a href = "https://meta.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target="_blank">Documentation</a><br>
-                                        <a href = "https://analytics.wikimedia.org/datasets/wmde-analytics-engineering/Wikidata/WD_External_Identifiers/" target = "_blank">Public datasets</a><br>
+                                        <a href = "https://analytics.wikimedia.org/published/datasets/wmde-analytics-engineering/Wikidata/WD_ExternalIdentifiers/" target = "_blank">Public datasets</a><br>
                                         <a href = "https://github.com/wikimedia/analytics-wmde-WD-WD_identifierLandscape" target = "_blank">GitHub</a><br>
                                         <a href = "https://wikitech.wikimedia.org/wiki/Wikidata_Identifier_Landscape" target = "_blank">Wikitech</a></p>')
                                    )
