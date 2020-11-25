@@ -60,6 +60,9 @@ sc = SparkSession\
     .appName("WD External Identifiers")\
     .enableHiveSupport()\
     .getOrCreate()
+
+# - Spark Session Log Level: INFO
+sc.sparkContext.setLogLevel("INFO")
     
 # - SQL Context
 sqlContext = pyspark.SQLContext(sc)

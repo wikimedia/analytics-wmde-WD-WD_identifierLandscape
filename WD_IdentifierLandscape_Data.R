@@ -42,6 +42,7 @@ library(data.table)
 library(spam)
 library(spam64)
 # - note: GitHub repo dselivanov/text2vec@0.5.0
+# - install_github('dselivanov/text2vec@0.5.0')
 library(text2vec)
 library(Rtsne)
 library(igraph)
@@ -84,15 +85,20 @@ analysisDir <- params$general$analysisDir
 etl_hdfsDir <- params$general$etl_hdfsDir
 # - production published-datasets:
 publicDir <- params$general$publicDir
-# - spark2-submit parameters:
-sparkMaster <- params$spark$master
-sparkDeployMode <- params$spark$deploy_mode
-sparkNumExecutors <- params$spark$num_executors
-sparkDriverMemory <- params$spark$driver_memory
-sparkExecutorMemory <- params$spark$executor_memory
-sparkExecutorCores <- params$spark$executor_cores
 # - endpoint for Blazegraph GAS program  
 endPointURL <- params$general$wdqs_endpoint
+
+# - spark2-submit parameters:
+paramsDeploy <- xmlParse(paste0(fPath, 
+                          "WDIdentifiersLandscape_Config_Deploy.xml"))
+paramsDeploy <- xmlToList(paramsDeploy)
+sparkMaster <- paramsDeploy$spark$master
+sparkDeployMode <- paramsDeploy$spark$deploy_mode
+sparkNumExecutors <- paramsDeploy$spark$num_executors
+sparkDriverMemory <- paramsDeploy$spark$driver_memory
+sparkExecutorMemory <- paramsDeploy$spark$executor_memory
+sparkExecutorCores <- paramsDeploy$spark$executor_cores
+sparkConfigDynamic <- paramsDeploy$spark$config
 
 ### --- Fetch all Wikidata external identifiers
 # - to runtime Log:
@@ -213,10 +219,11 @@ print(paste("--- WD_IndentifierLandscape.R: Pyspark ETL, WD_IdentifierLandscape_
 system(command = paste0('sudo -u analytics-privatedata spark2-submit ', 
                         sparkMaster, ' ',
                         sparkDeployMode, ' ', 
-                        sparkNumExecutors, ' ',
+#                        sparkNumExecutors, ' ',
                         sparkDriverMemory, ' ',
                         sparkExecutorMemory, ' ',
-                        sparkExecutorCores, ' ',
+                        sparkExecutorCores, ' ', 
+                        '--conf spark.dynamicAllocation.maxExecutors=100 --conf spark.executor.extraJavaOptions=-Dlog4j.configuration=/etc/spark2/defaults/log4j.properties --conf spark.driver.extraJavaOptions=-Dlog4j.configuration=/etc/spark2/defaults/log4j.properties ',
                         paste0(fPath, 'WD_IdentifierLandscape_Data.py')),
        wait = T)
 
